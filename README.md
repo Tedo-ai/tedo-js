@@ -285,7 +285,7 @@ const org = await client.sales.createOrganization(base.id, {
 | Deals | `createDeal`, `listDeals`, `getDeal`, `updateDeal`, `deleteDeal`, `moveDealStage` |
 | Activities | `createActivity`, `listActivities`, `getActivity`, `updateActivity`, `deleteActivity`, `completeActivity` |
 | Notes | `createNote`, `listNotes`, `getNote`, `updateNote`, `deleteNote` |
-| Contact Bases | `listContactBases`, `getContactBase` |
+| Contact Bases | `createContactBase`, `listContactBases`, `getContactBase` |
 | Persons | `createPerson`, `listPersons`, `getPerson`, `updatePerson`, `deletePerson` |
 | Organizations | `createOrganization`, `listOrganizations`, `getOrganization`, `updateOrganization`, `deleteOrganization` |
 
