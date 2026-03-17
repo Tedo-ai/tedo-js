@@ -192,6 +192,90 @@ export interface CreatePortalLinkParams {
 }
 
 // ============================================================
+// INVOICES
+// ============================================================
+
+export interface InvoiceLineItem {
+  description: string;
+  quantity: number;
+  unit_amount: number;
+  amount: number;
+  price_id?: string;
+  plan_name?: string;
+}
+
+export interface Invoice {
+  id: string;
+  customer_id: string;
+  subscription_id?: string;
+  number?: string;
+  status: string;
+  currency: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  amount_paid: number;
+  amount_due: number;
+  period_start?: string;
+  period_end?: string;
+  due_date?: string;
+  lines?: InvoiceLineItem[];
+  notes?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface CreateInvoiceParams {
+  customer_id: string;
+  currency?: string;
+  lines: Omit<InvoiceLineItem, "amount">[];
+  notes?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ListInvoicesParams {
+  customer_id: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface InvoiceCheckoutResult {
+  payment_id: string;
+  invoice_id: string;
+  checkout_url: string;
+}
+
+export interface CreateInvoiceCheckoutParams {
+  redirect_url?: string;
+}
+
+// ============================================================
+// CHECKOUT
+// ============================================================
+
+export interface CheckoutLink {
+  checkout_url: string;
+  token: string;
+  expires_at: string;
+}
+
+export interface CreateCheckoutLinkParams {
+  expires_in_hours?: number;
+  expires_in_minutes?: number;
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+
+export interface PaymentStatus {
+  id: string;
+  status: string;
+  invoice_id?: string;
+}
+
+// ============================================================
 // PAYMENT CONFIGS
 // ============================================================
 

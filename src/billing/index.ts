@@ -23,6 +23,14 @@ import type {
   GetUsageSummaryParams,
   PortalLink,
   CreatePortalLinkParams,
+  Invoice,
+  CreateInvoiceParams,
+  ListInvoicesParams,
+  InvoiceCheckoutResult,
+  CreateInvoiceCheckoutParams,
+  CheckoutLink,
+  CreateCheckoutLinkParams,
+  PaymentStatus,
   PaymentConfig,
   CreatePaymentConfigParams,
   UpdatePaymentConfigParams,
@@ -48,8 +56,8 @@ interface ClientInternals {
   _transport: Transport;
 }
 
-/** Billing service — 23 methods covering plans, prices, entitlements,
- *  customers, subscriptions, usage, and portal links. */
+/** Billing service covering plans, prices, entitlements, customers,
+ *  subscriptions, invoices, checkout, payments, usage, and portal links. */
 export class BillingService {
   private req: RequestFn;
   private reqVoid: RequestVoidFn;
@@ -271,6 +279,67 @@ export class BillingService {
       "POST",
       `/billing/customers/${customerId}/portal-link`,
       params ?? {},
+    );
+  }
+
+  // ============================================================
+  // INVOICES
+  // ============================================================
+
+  async listInvoices(
+    params: ListInvoicesParams,
+  ): Promise<{ invoices: Invoice[]; total: number }> {
+    const query: Record<string, string> = {
+      customer_id: params.customer_id,
+    };
+    if (params.limit) query.limit = String(params.limit);
+    if (params.offset) query.offset = String(params.offset);
+
+    return this.req("GET", "/billing/invoices", undefined, query);
+  }
+
+  async createInvoice(params: CreateInvoiceParams): Promise<Invoice> {
+    return this.req<Invoice>("POST", "/billing/invoices", params);
+  }
+
+  async getInvoice(id: string): Promise<Invoice> {
+    return this.req<Invoice>("GET", `/billing/invoices/${id}`);
+  }
+
+  async createInvoiceCheckout(
+    invoiceId: string,
+    params?: CreateInvoiceCheckoutParams,
+  ): Promise<InvoiceCheckoutResult> {
+    return this.req<InvoiceCheckoutResult>(
+      "POST",
+      `/billing/invoices/${invoiceId}/checkout`,
+      params ?? {},
+    );
+  }
+
+  // ============================================================
+  // CHECKOUT
+  // ============================================================
+
+  async createCheckoutLink(
+    subscriptionId: string,
+    params?: CreateCheckoutLinkParams,
+  ): Promise<CheckoutLink> {
+    return this.req<CheckoutLink>(
+      "POST",
+      `/billing/subscriptions/${subscriptionId}/checkout-link`,
+      params ?? {},
+    );
+  }
+
+  // ============================================================
+  // PAYMENTS
+  // ============================================================
+
+  async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
+    return this.req<PaymentStatus>(
+      "GET",
+      `/billing/payments/${paymentId}/status`,
     );
   }
 

@@ -46,6 +46,15 @@ export type {
   GetUsageSummaryParams,
   PortalLink,
   CreatePortalLinkParams,
+  Invoice,
+  InvoiceLineItem,
+  CreateInvoiceParams,
+  ListInvoicesParams,
+  InvoiceCheckoutResult,
+  CreateInvoiceCheckoutParams,
+  CheckoutLink,
+  CreateCheckoutLinkParams,
+  PaymentStatus,
 } from "./billing/types.js";
 
 // Sales service
