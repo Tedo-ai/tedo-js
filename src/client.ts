@@ -3,8 +3,9 @@ import type { Transport } from "./transport.js";
 import { parseError } from "./errors.js";
 import { BillingService } from "./billing/index.js";
 import { SalesService } from "./sales/index.js";
+import { ProjectsService } from "./projects/index.js";
 
-const DEFAULT_BASE_URL = "https://api.tedo.ai/v1";
+const DEFAULT_BASE_URL = "https://api.tedo.ai";
 
 export interface TedoOptions {
   apiKey: string;
@@ -12,9 +13,16 @@ export interface TedoOptions {
   transport?: Transport;
 }
 
+export interface RequestOptions {
+  idempotencyKey?: string;
+  requestId?: string;
+  headers?: Record<string, string>;
+}
+
 /** Tedo API client. */
 export class Tedo {
   readonly billing: BillingService;
+  readonly projects: ProjectsService;
   readonly sales: SalesService;
 
   /** @internal */
@@ -45,6 +53,12 @@ export class Tedo {
       _transport: this._transport,
     });
 
+    this.projects = new ProjectsService({
+      _request: this._request.bind(this),
+      _requestVoid: this._requestVoid.bind(this),
+      _transport: this._transport,
+    });
+
     this.sales = new SalesService({
       _request: this._request.bind(this),
       _requestVoid: this._requestVoid.bind(this),
@@ -58,8 +72,15 @@ export class Tedo {
     path: string,
     body?: unknown,
     query?: Record<string, string>,
+    options?: RequestOptions,
   ): Promise<T> {
-    const resp = await this._transport.request({ method, path, body, query });
+    const resp = await this._transport.request({
+      method,
+      path,
+      body,
+      query,
+      headers: headersFromOptions(options),
+    });
 
     if (resp.status >= 400) {
       throw parseError(resp.status, resp.body);
@@ -73,11 +94,32 @@ export class Tedo {
     method: string,
     path: string,
     body?: unknown,
+    options?: RequestOptions,
   ): Promise<void> {
-    const resp = await this._transport.request({ method, path, body });
+    const resp = await this._transport.request({
+      method,
+      path,
+      body,
+      headers: headersFromOptions(options),
+    });
 
     if (resp.status >= 400) {
       throw parseError(resp.status, resp.body);
     }
   }
+}
+
+function headersFromOptions(
+  options?: RequestOptions,
+): Record<string, string> | undefined {
+  if (!options) return undefined;
+
+  const headers: Record<string, string> = { ...(options.headers ?? {}) };
+  if (options.idempotencyKey) {
+    headers["Idempotency-Key"] = options.idempotencyKey;
+  }
+  if (options.requestId) {
+    headers["X-Request-ID"] = options.requestId;
+  }
+  return Object.keys(headers).length ? headers : undefined;
 }

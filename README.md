@@ -42,6 +42,16 @@ const lead = await client.sales.createLead({
   label: "Acme Corp",
   pipeline_id: pipeline.id,
 });
+
+// Projects: create a project and add a work item
+const project = await client.projects.createProject({
+  name: "Customer onboarding",
+});
+
+const workItem = await client.projects.createProjectWorkItem(project.id, {
+  title: "Kickoff call",
+  priority: 2,
+});
 ```
 
 ## Pagination
@@ -161,6 +171,46 @@ await client.sales.createActivity({
 // Link.person(id, primary?)
 // Link.organization(id, primary?)
 ```
+
+### Projects (34 methods)
+
+The projects service manages projects, work items, workflow statuses/types, priority levels, read-only comments, activity, and file-reference attachments.
+
+Projects V1 intentionally excludes comment writes, live collaborative description editing, and raw multipart uploads. Attach files by first uploading through Files/Storage, then call `attachFile` with a `file_id`.
+
+```typescript
+import { ProjectPriority, ProjectStatusCategory } from "tedo";
+
+const project = await client.projects.createProject(
+  { name: "Website launch", description: "Q3 launch plan" },
+  { idempotencyKey: "project-create-website-launch" },
+);
+
+const item = await client.projects.createProjectWorkItem(project.id, {
+  title: "Draft launch checklist",
+  priority: ProjectPriority.HIGH,
+});
+
+const open = await client.projects.listWorkItems({
+  project_id: project.id,
+  includeCompleted: false,
+  limit: 25,
+});
+
+for await (const workItem of open) {
+  console.log(workItem.display_id, workItem.title);
+}
+
+await client.projects.createStatus({
+  name: "In progress",
+  category: ProjectStatusCategory.IN_PROGRESS,
+});
+
+const comments = await client.projects.listComments(item.id);
+console.log(comments.items[0]?.actor_ref); // opaque actor reference
+```
+
+Mutating create/delete operations generate an `Idempotency-Key` automatically unless you pass one via `{ idempotencyKey }`. `{ requestId }` sets `X-Request-ID` for tracing.
 
 #### Pipelines
 

@@ -1,6 +1,6 @@
 // Client
 export { Tedo } from "./client.js";
-export type { TedoOptions } from "./client.js";
+export type { RequestOptions, TedoOptions } from "./client.js";
 
 // Transport
 export type { Transport, TransportRequest, TransportResponse } from "./transport.js";
@@ -103,3 +103,39 @@ export {
   StageOutcome,
   Link,
 } from "./sales/types.js";
+
+// Projects service
+export { ProjectsService } from "./projects/index.js";
+
+// Projects types
+export type {
+  AttachFileParams,
+  CreateProjectParams,
+  CreateStatusParams,
+  CreateWorkItemParams,
+  CreateWorkItemTypeParams,
+  DeleteResult,
+  ListActivityParams,
+  ListPageParams,
+  ListProjectsParams,
+  ListStatusesParams,
+  ListWorkItemsParams,
+  NextDisplayID,
+  PeekNextDisplayIDParams,
+  PriorityLevel,
+  Project,
+  ProjectAttachment,
+  ProjectComment,
+  UpdatePriorityLevelParams,
+  UpdateProjectParams,
+  UpdateStatusParams,
+  UpdateWorkItemParams,
+  UpdateWorkItemTypeParams,
+  WorkItem,
+  WorkItemActivity,
+  WorkItemType,
+  WorkflowStatus,
+} from "./projects/types.js";
+
+// Projects enums & helpers
+export { ProjectPriority, ProjectStatusCategory } from "./projects/types.js";

@@ -4,6 +4,7 @@ export interface TransportRequest {
   path: string;
   body?: unknown;
   query?: Record<string, string>;
+  headers?: Record<string, string>;
 }
 
 /** Response returned by a transport. */
@@ -46,6 +47,7 @@ export class HttpTransport implements Transport {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.apiKey}`,
       Accept: "application/json",
+      ...req.headers,
     };
 
     let fetchBody: string | undefined;
