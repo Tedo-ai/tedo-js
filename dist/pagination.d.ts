@@ -17,6 +17,8 @@ export declare class Page<T> {
     });
     /** Whether there are more pages. */
     get hasMore(): boolean;
+    /** Alias for APIs that return cursor envelopes as { items, next_cursor, has_more }. */
+    get items(): T[];
     /** Fetch the next page. Returns null if no more pages. */
     nextPage(): Promise<Page<T> | null>;
     /** Async iterator that yields every item across all pages. */

@@ -4,6 +4,7 @@ export interface TransportRequest {
     path: string;
     body?: unknown;
     query?: Record<string, string>;
+    headers?: Record<string, string>;
 }
 /** Response returned by a transport. */
 export interface TransportResponse {

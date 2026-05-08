@@ -32,6 +32,11 @@ export class Page<T> {
     return this.nextCursor !== null;
   }
 
+  /** Alias for APIs that return cursor envelopes as { items, next_cursor, has_more }. */
+  get items(): T[] {
+    return this.data;
+  }
+
   /** Fetch the next page. Returns null if no more pages. */
   async nextPage(): Promise<Page<T> | null> {
     if (!this.hasMore || !this.nextRequest) return null;

@@ -28,6 +28,9 @@ __export(index_exports, {
   NotFoundError: () => NotFoundError,
   Page: () => Page,
   PermissionError: () => PermissionError,
+  ProjectPriority: () => ProjectPriority,
+  ProjectStatusCategory: () => ProjectStatusCategory,
+  ProjectsService: () => ProjectsService,
   RateLimitError: () => RateLimitError,
   ResourceType: () => ResourceType,
   SalesService: () => SalesService,
@@ -63,7 +66,8 @@ var HttpTransport = class {
     }
     const headers = {
       Authorization: `Bearer ${this.apiKey}`,
-      Accept: "application/json"
+      Accept: "application/json",
+      ...req.headers
     };
     let fetchBody;
     if (req.body !== void 0) {
@@ -96,41 +100,47 @@ var TedoError = class extends Error {
   status;
   /** Field that caused the error, if applicable. */
   field;
-  constructor(code, message, status, field) {
+  /** Additional structured error details from the API. */
+  details;
+  /** Request ID propagated by the API, if available. */
+  requestId;
+  constructor(code, message, status, field, details, requestId) {
     super(message);
     this.name = "TedoError";
     this.code = code;
     this.status = status;
     this.field = field;
+    this.details = details;
+    this.requestId = requestId;
   }
 };
 var ValidationError = class extends TedoError {
-  constructor(code, message, field) {
-    super(code, message, 400, field);
+  constructor(code, message, field, details, requestId) {
+    super(code, message, 400, field, details, requestId);
     this.name = "ValidationError";
   }
 };
 var AuthenticationError = class extends TedoError {
-  constructor(code, message) {
-    super(code, message, 401);
+  constructor(code, message, details, requestId) {
+    super(code, message, 401, void 0, details, requestId);
     this.name = "AuthenticationError";
   }
 };
 var PermissionError = class extends TedoError {
-  constructor(code, message) {
-    super(code, message, 403);
+  constructor(code, message, details, requestId) {
+    super(code, message, 403, void 0, details, requestId);
     this.name = "PermissionError";
   }
 };
 var NotFoundError = class extends TedoError {
-  constructor(code, message) {
-    super(code, message, 404);
+  constructor(code, message, details, requestId) {
+    super(code, message, 404, void 0, details, requestId);
     this.name = "NotFoundError";
   }
 };
 var RateLimitError = class extends TedoError {
-  constructor(code, message) {
-    super(code, message, 429);
+  constructor(code, message, details, requestId) {
+    super(code, message, 429, void 0, details, requestId);
     this.name = "RateLimitError";
   }
 };
@@ -138,28 +148,34 @@ function parseError(status, body) {
   let code = "unknown_error";
   let message = "An unknown error occurred";
   let field;
+  let details;
+  let requestId;
   if (body && typeof body === "object") {
     const obj = body;
     if (typeof obj.code === "string") code = obj.code;
     else if (typeof obj.error === "string") code = obj.error;
     if (typeof obj.message === "string") message = obj.message;
     if (typeof obj.field === "string") field = obj.field;
+    if (obj.details && typeof obj.details === "object") {
+      details = obj.details;
+    }
+    if (typeof obj.request_id === "string") requestId = obj.request_id;
   } else if (typeof body === "string") {
     message = body;
   }
   switch (status) {
     case 400:
-      return new ValidationError(code, message, field);
+      return new ValidationError(code, message, field, details, requestId);
     case 401:
-      return new AuthenticationError(code, message);
+      return new AuthenticationError(code, message, details, requestId);
     case 403:
-      return new PermissionError(code, message);
+      return new PermissionError(code, message, details, requestId);
     case 404:
-      return new NotFoundError(code, message);
+      return new NotFoundError(code, message, details, requestId);
     case 429:
-      return new RateLimitError(code, message);
+      return new RateLimitError(code, message, details, requestId);
     default:
-      return new TedoError(code, message, status, field);
+      return new TedoError(code, message, status, field, details, requestId);
   }
 }
 
@@ -182,6 +198,10 @@ var Page = class _Page {
   /** Whether there are more pages. */
   get hasMore() {
     return this.nextCursor !== null;
+  }
+  /** Alias for APIs that return cursor envelopes as { items, next_cursor, has_more }. */
+  get items() {
+    return this.data;
   }
   /** Fetch the next page. Returns null if no more pages. */
   async nextPage() {
@@ -237,19 +257,19 @@ var BillingService = class {
   // PLANS
   // ============================================================
   async createPlan(params) {
-    return this.req("POST", "/billing/plans", params);
+    return this.req("POST", "/billing/v1/plans", params);
   }
   async listPlans() {
-    return this.req("GET", "/billing/plans");
+    return this.req("GET", "/billing/v1/plans");
   }
   async getPlan(id) {
-    return this.req("GET", `/billing/plans/${id}`);
+    return this.req("GET", `/billing/v1/plans/${id}`);
   }
   async updatePlan(id, params) {
-    return this.req("PATCH", `/billing/plans/${id}`, params);
+    return this.req("PATCH", `/billing/v1/plans/${id}`, params);
   }
   async deletePlan(id) {
-    return this.reqVoid("DELETE", `/billing/plans/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/plans/${id}`);
   }
   // ============================================================
   // PRICES
@@ -257,17 +277,17 @@ var BillingService = class {
   async createPrice(planId, params) {
     return this.req(
       "POST",
-      `/billing/plans/${planId}/prices`,
+      `/billing/v1/plans/${planId}/prices`,
       params
     );
   }
   async listPrices(planId) {
-    return this.req("GET", `/billing/plans/${planId}/prices`);
+    return this.req("GET", `/billing/v1/plans/${planId}/prices`);
   }
   async archivePrice(planId, priceId) {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/prices/${priceId}`
+      `/billing/v1/plans/${planId}/prices/${priceId}`
     );
   }
   // ============================================================
@@ -276,27 +296,27 @@ var BillingService = class {
   async createEntitlement(planId, params) {
     return this.req(
       "POST",
-      `/billing/plans/${planId}/entitlements`,
+      `/billing/v1/plans/${planId}/entitlements`,
       params
     );
   }
   async listEntitlements(planId) {
-    return this.req("GET", `/billing/plans/${planId}/entitlements`);
+    return this.req("GET", `/billing/v1/plans/${planId}/entitlements`);
   }
   async archiveEntitlement(planId, entitlementId) {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/entitlements/${entitlementId}`
+      `/billing/v1/plans/${planId}/entitlements/${entitlementId}`
     );
   }
   // ============================================================
   // CUSTOMERS
   // ============================================================
   async createCustomer(params) {
-    return this.req("POST", "/billing/customers", params);
+    return this.req("POST", "/billing/v1/customers", params);
   }
   async getCustomer(id) {
-    return this.req("GET", `/billing/customers/${id}`);
+    return this.req("GET", `/billing/v1/customers/${id}`);
   }
   async listCustomers(params) {
     const query = {};
@@ -304,7 +324,7 @@ var BillingService = class {
     if (params?.cursor) query.cursor = params.cursor;
     const baseReq = {
       method: "GET",
-      path: "/billing/customers",
+      path: "/billing/v1/customers",
       query
     };
     const resp = await this.transport.request(baseReq);
@@ -327,12 +347,12 @@ var BillingService = class {
   async updateCustomer(id, params) {
     return this.req(
       "PATCH",
-      `/billing/customers/${id}`,
+      `/billing/v1/customers/${id}`,
       params
     );
   }
   async deleteCustomer(id) {
-    return this.reqVoid("DELETE", `/billing/customers/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/customers/${id}`);
   }
   // ============================================================
   // SUBSCRIPTIONS
@@ -340,20 +360,20 @@ var BillingService = class {
   async createSubscription(params) {
     return this.req(
       "POST",
-      "/billing/subscriptions",
+      "/billing/v1/subscriptions",
       params
     );
   }
   async getSubscription(id) {
     return this.req(
       "GET",
-      `/billing/subscriptions/${id}`
+      `/billing/v1/subscriptions/${id}`
     );
   }
   async cancelSubscription(id) {
     return this.req(
       "DELETE",
-      `/billing/subscriptions/${id}`
+      `/billing/v1/subscriptions/${id}`
     );
   }
   // ============================================================
@@ -362,7 +382,7 @@ var BillingService = class {
   async checkEntitlement(params) {
     return this.req(
       "POST",
-      "/billing/entitlements/check",
+      "/billing/v1/entitlements/check",
       params
     );
   }
@@ -370,10 +390,10 @@ var BillingService = class {
   // USAGE
   // ============================================================
   async recordUsage(params) {
-    return this.req("POST", "/billing/usage", params);
+    return this.req("POST", "/billing/v1/usage", params);
   }
   async getUsageSummary(params) {
-    return this.req("GET", "/billing/usage", void 0, {
+    return this.req("GET", "/billing/v1/usage", void 0, {
       subscription_id: params.subscription_id
     });
   }
@@ -383,8 +403,51 @@ var BillingService = class {
   async createPortalLink(customerId, params) {
     return this.req(
       "POST",
-      `/billing/customers/${customerId}/portal-link`,
+      `/billing/v1/customers/${customerId}/portal-link`,
       params ?? {}
+    );
+  }
+  // ============================================================
+  // INVOICES
+  // ============================================================
+  async listInvoices(params) {
+    const query = {
+      customer_id: params.customer_id
+    };
+    if (params.limit) query.limit = String(params.limit);
+    if (params.offset) query.offset = String(params.offset);
+    return this.req("GET", "/billing/v1/invoices", void 0, query);
+  }
+  async createInvoice(params) {
+    return this.req("POST", "/billing/v1/invoices", params);
+  }
+  async getInvoice(id) {
+    return this.req("GET", `/billing/v1/invoices/${id}`);
+  }
+  async createInvoiceCheckout(invoiceId, params) {
+    return this.req(
+      "POST",
+      `/billing/v1/invoices/${invoiceId}/checkout`,
+      params ?? {}
+    );
+  }
+  // ============================================================
+  // CHECKOUT
+  // ============================================================
+  async createCheckoutLink(subscriptionId, params) {
+    return this.req(
+      "POST",
+      `/billing/v1/subscriptions/${subscriptionId}/checkout-link`,
+      params ?? {}
+    );
+  }
+  // ============================================================
+  // PAYMENTS
+  // ============================================================
+  async getPaymentStatus(paymentId) {
+    return this.req(
+      "GET",
+      `/billing/v1/payments/${paymentId}/status`
     );
   }
   // ============================================================
@@ -393,28 +456,28 @@ var BillingService = class {
   async createPaymentConfig(params) {
     return this.req(
       "POST",
-      "/billing/payment-configs",
+      "/billing/v1/payment-configs",
       params
     );
   }
   async listPaymentConfigs() {
-    return this.req("GET", "/billing/payment-configs");
+    return this.req("GET", "/billing/v1/payment-configs");
   }
   async getPaymentConfig(id) {
     return this.req(
       "GET",
-      `/billing/payment-configs/${id}`
+      `/billing/v1/payment-configs/${id}`
     );
   }
   async updatePaymentConfig(id, params) {
     return this.req(
       "PATCH",
-      `/billing/payment-configs/${id}`,
+      `/billing/v1/payment-configs/${id}`,
       params
     );
   }
   async deletePaymentConfig(id) {
-    return this.reqVoid("DELETE", `/billing/payment-configs/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/payment-configs/${id}`);
   }
 };
 
@@ -645,6 +708,10 @@ var SalesService = class {
   // ============================================================
   // CONTACT BASES
   // ============================================================
+  /** Create a new contact base. */
+  async createContactBase(params) {
+    return this.req("POST", "/sales/v1/contact-bases", params);
+  }
   /** List all contact bases. */
   async listContactBases() {
     return this.req("GET", "/sales/v1/contact-bases");
@@ -719,10 +786,374 @@ var SalesService = class {
   }
 };
 
+// src/projects/index.ts
+var ProjectsService = class {
+  req;
+  transport;
+  /** @internal — constructed by Tedo client. */
+  constructor(client) {
+    this.req = client._request;
+    this.transport = client._transport;
+  }
+  async listProjects(params) {
+    return this.requestPage(
+      "/projects/v1/projects",
+      listProjectsQuery(params)
+    );
+  }
+  async createProject(params, options) {
+    return this.req(
+      "POST",
+      "/projects/v1/projects",
+      params,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async getProject(projectId) {
+    return this.req(
+      "GET",
+      `/projects/v1/projects/${pathEscape(projectId)}`
+    );
+  }
+  async updateProject(projectId, params, options) {
+    return this.req(
+      "PATCH",
+      `/projects/v1/projects/${pathEscape(projectId)}`,
+      params,
+      void 0,
+      options
+    );
+  }
+  async archiveProject(projectId, options) {
+    return this.projectAction(projectId, "archive", options);
+  }
+  async restoreProject(projectId, options) {
+    return this.projectAction(projectId, "restore", options);
+  }
+  async deleteProject(projectId, options) {
+    return this.req(
+      "DELETE",
+      `/projects/v1/projects/${pathEscape(projectId)}`,
+      void 0,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async listProjectWorkItems(projectId, params) {
+    return this.requestPage(
+      `/projects/v1/projects/${pathEscape(projectId)}/work-items`,
+      workItemListQuery(params)
+    );
+  }
+  async createProjectWorkItem(projectId, params, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/projects/${pathEscape(projectId)}/work-items`,
+      { ...params, project_id: projectId },
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async listWorkItems(params) {
+    return this.requestPage(
+      "/projects/v1/work-items",
+      workItemListQuery(params)
+    );
+  }
+  async createWorkItem(params, options) {
+    return this.req(
+      "POST",
+      "/projects/v1/work-items",
+      params,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async peekNextDisplayID(params) {
+    return this.req(
+      "GET",
+      "/projects/v1/work-items/next-display-id",
+      void 0,
+      compactQuery({ work_item_type_id: params?.work_item_type_id })
+    );
+  }
+  async getWorkItem(workItemId) {
+    return this.req(
+      "GET",
+      `/projects/v1/work-items/${pathEscape(workItemId)}`
+    );
+  }
+  async updateWorkItem(workItemId, params, options) {
+    return this.req(
+      "PATCH",
+      `/projects/v1/work-items/${pathEscape(workItemId)}`,
+      params,
+      void 0,
+      options
+    );
+  }
+  async completeWorkItem(workItemId, completed, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/work-items/${pathEscape(workItemId)}/complete`,
+      { completed },
+      void 0,
+      options
+    );
+  }
+  async archiveWorkItem(workItemId, options) {
+    return this.workItemAction(workItemId, "archive", options);
+  }
+  async restoreWorkItem(workItemId, options) {
+    return this.workItemAction(workItemId, "restore", options);
+  }
+  async deleteWorkItem(workItemId, options) {
+    return this.req(
+      "DELETE",
+      `/projects/v1/work-items/${pathEscape(workItemId)}`,
+      void 0,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async listSubtasks(workItemId, params) {
+    return this.requestPage(
+      `/projects/v1/work-items/${pathEscape(workItemId)}/subtasks`,
+      pageQuery(params)
+    );
+  }
+  async listWorkItemActivity(workItemId, params) {
+    return this.requestPage(
+      `/projects/v1/work-items/${pathEscape(workItemId)}/activity`,
+      activityQuery(params)
+    );
+  }
+  async listStatuses(params) {
+    return this.requestPage(
+      "/projects/v1/statuses",
+      compactQuery({ work_item_type_id: params?.work_item_type_id })
+    );
+  }
+  async createStatus(params, options) {
+    return this.req(
+      "POST",
+      "/projects/v1/statuses",
+      params,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async updateStatus(statusId, params, options) {
+    return this.req(
+      "PATCH",
+      `/projects/v1/statuses/${pathEscape(statusId)}`,
+      params,
+      void 0,
+      options
+    );
+  }
+  async deleteStatus(statusId, options) {
+    return this.req(
+      "DELETE",
+      `/projects/v1/statuses/${pathEscape(statusId)}`,
+      void 0,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async listWorkItemTypes() {
+    return this.requestPage("/projects/v1/work-item-types");
+  }
+  async createWorkItemType(params, options) {
+    return this.req(
+      "POST",
+      "/projects/v1/work-item-types",
+      params,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async updateWorkItemType(workItemTypeId, params, options) {
+    return this.req(
+      "PATCH",
+      `/projects/v1/work-item-types/${pathEscape(workItemTypeId)}`,
+      params,
+      void 0,
+      options
+    );
+  }
+  async deleteWorkItemType(workItemTypeId, options) {
+    return this.req(
+      "DELETE",
+      `/projects/v1/work-item-types/${pathEscape(workItemTypeId)}`,
+      void 0,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async listPriorityLevels() {
+    return this.requestPage("/projects/v1/priority-levels");
+  }
+  async updatePriorityLevel(level, params, options) {
+    return this.req(
+      "PATCH",
+      `/projects/v1/priority-levels/${level}`,
+      params,
+      void 0,
+      options
+    );
+  }
+  async resetPriorityLevel(level, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/priority-levels/${level}/reset`,
+      void 0,
+      void 0,
+      options
+    );
+  }
+  async listComments(workItemId, params) {
+    return this.requestPage(
+      `/projects/v1/work-items/${pathEscape(workItemId)}/comments`,
+      pageQuery(params)
+    );
+  }
+  async listAttachments(workItemId) {
+    return this.requestPage(
+      `/projects/v1/work-items/${pathEscape(workItemId)}/attachments`
+    );
+  }
+  async attachFile(workItemId, params, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/work-items/${pathEscape(workItemId)}/attachments`,
+      params,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async detachAttachment(workItemId, attachmentId, options) {
+    return this.req(
+      "DELETE",
+      `/projects/v1/work-items/${pathEscape(workItemId)}/attachments/${pathEscape(
+        attachmentId
+      )}`,
+      void 0,
+      void 0,
+      requiredIdempotencyOptions(options)
+    );
+  }
+  async projectAction(projectId, action, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/projects/${pathEscape(projectId)}/${action}`,
+      void 0,
+      void 0,
+      options
+    );
+  }
+  async workItemAction(workItemId, action, options) {
+    return this.req(
+      "POST",
+      `/projects/v1/work-items/${pathEscape(workItemId)}/${action}`,
+      void 0,
+      void 0,
+      options
+    );
+  }
+  async requestPage(path, query) {
+    const req = { method: "GET", path, query };
+    const resp = await this.transport.request(req);
+    if (resp.status >= 400) {
+      throw parseError(resp.status, resp.body);
+    }
+    const body = resp.body;
+    const nextCursor = body.next_cursor ?? null;
+    return new Page({
+      data: body.items ?? [],
+      total: body.total ?? 0,
+      nextCursor,
+      transport: this.transport,
+      nextRequest: req,
+      dataKey: "items"
+    });
+  }
+};
+function listProjectsQuery(params) {
+  return compactQuery({
+    include_archived: params?.includeArchived ? "true" : void 0,
+    limit: numberParam(params?.limit),
+    cursor: params?.cursor
+  });
+}
+function workItemListQuery(params) {
+  return compactQuery({
+    project_id: params?.project_id,
+    work_item_type_id: params?.work_item_type_id,
+    status_id: params?.status_id,
+    parent_id: params?.parent_id,
+    assignee_id: params?.assignee_id,
+    priority: numberParam(params?.priority),
+    include_completed: params?.includeCompleted ? "true" : void 0,
+    include_archived: params?.includeArchived ? "true" : void 0,
+    limit: numberParam(params?.limit),
+    cursor: params?.cursor
+  });
+}
+function pageQuery(params) {
+  return compactQuery({
+    limit: numberParam(params?.limit),
+    cursor: params?.cursor
+  });
+}
+function activityQuery(params) {
+  return compactQuery({
+    include_subtasks: params?.includeSubtasks ? "true" : void 0,
+    include_comments: params?.includeComments ? "true" : void 0,
+    limit: numberParam(params?.limit),
+    cursor: params?.cursor
+  });
+}
+function compactQuery(values) {
+  const query = {};
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== void 0 && value !== "") {
+      query[key] = value;
+    }
+  }
+  return Object.keys(query).length ? query : void 0;
+}
+function numberParam(value) {
+  return value === void 0 ? void 0 : String(value);
+}
+function pathEscape(value) {
+  return encodeURIComponent(value);
+}
+function requiredIdempotencyOptions(options) {
+  return {
+    ...options,
+    idempotencyKey: options?.idempotencyKey ?? newIdempotencyKey()
+  };
+}
+function newIdempotencyKey() {
+  const bytes = new Uint8Array(16);
+  const cryptoLike = globalThis;
+  if (cryptoLike.crypto?.getRandomValues) {
+    cryptoLike.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  return "tedo_js_" + Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 // src/client.ts
-var DEFAULT_BASE_URL = "https://api.tedo.ai/v1";
+var DEFAULT_BASE_URL = "https://api.tedo.ai";
 var Tedo = class {
   billing;
+  projects;
   sales;
   /** @internal */
   _transport;
@@ -743,6 +1174,11 @@ var Tedo = class {
       _requestVoid: this._requestVoid.bind(this),
       _transport: this._transport
     });
+    this.projects = new ProjectsService({
+      _request: this._request.bind(this),
+      _requestVoid: this._requestVoid.bind(this),
+      _transport: this._transport
+    });
     this.sales = new SalesService({
       _request: this._request.bind(this),
       _requestVoid: this._requestVoid.bind(this),
@@ -750,21 +1186,43 @@ var Tedo = class {
     });
   }
   /** @internal — sends a request and returns the parsed body. */
-  async _request(method, path, body, query) {
-    const resp = await this._transport.request({ method, path, body, query });
+  async _request(method, path, body, query, options) {
+    const resp = await this._transport.request({
+      method,
+      path,
+      body,
+      query,
+      headers: headersFromOptions(options)
+    });
     if (resp.status >= 400) {
       throw parseError(resp.status, resp.body);
     }
     return resp.body;
   }
   /** @internal — sends a request that returns no body (204). */
-  async _requestVoid(method, path, body) {
-    const resp = await this._transport.request({ method, path, body });
+  async _requestVoid(method, path, body, options) {
+    const resp = await this._transport.request({
+      method,
+      path,
+      body,
+      headers: headersFromOptions(options)
+    });
     if (resp.status >= 400) {
       throw parseError(resp.status, resp.body);
     }
   }
 };
+function headersFromOptions(options) {
+  if (!options) return void 0;
+  const headers = { ...options.headers ?? {} };
+  if (options.idempotencyKey) {
+    headers["Idempotency-Key"] = options.idempotencyKey;
+  }
+  if (options.requestId) {
+    headers["X-Request-ID"] = options.requestId;
+  }
+  return Object.keys(headers).length ? headers : void 0;
+}
 
 // src/sales/types.ts
 var ActivityType = {
@@ -808,22 +1266,19 @@ var Link = {
     is_primary: primary
   })
 };
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  ActivityType,
-  AuthenticationError,
-  BillingService,
-  HttpTransport,
-  Link,
-  NotFoundError,
-  Page,
-  PermissionError,
-  RateLimitError,
-  ResourceType,
-  SalesService,
-  StageOutcome,
-  Tedo,
-  TedoError,
-  ValidationError,
-  parseError
-});
+
+// src/projects/types.ts
+var ProjectStatusCategory = {
+  START: "start",
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
+  CANCELED: "canceled"
+};
+var ProjectPriority = {
+  NONE: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  URGENT: 4
+};
+//# sourceMappingURL=index.cjs.map
