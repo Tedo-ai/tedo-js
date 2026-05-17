@@ -237,19 +237,19 @@ var BillingService = class {
   // PLANS
   // ============================================================
   async createPlan(params) {
-    return this.req("POST", "/billing/plans", params);
+    return this.req("POST", "/billing/v1/plans", params);
   }
   async listPlans() {
-    return this.req("GET", "/billing/plans");
+    return this.req("GET", "/billing/v1/plans");
   }
   async getPlan(id) {
-    return this.req("GET", `/billing/plans/${id}`);
+    return this.req("GET", `/billing/v1/plans/${id}`);
   }
   async updatePlan(id, params) {
-    return this.req("PATCH", `/billing/plans/${id}`, params);
+    return this.req("PATCH", `/billing/v1/plans/${id}`, params);
   }
   async deletePlan(id) {
-    return this.reqVoid("DELETE", `/billing/plans/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/plans/${id}`);
   }
   // ============================================================
   // PRICES
@@ -257,17 +257,17 @@ var BillingService = class {
   async createPrice(planId, params) {
     return this.req(
       "POST",
-      `/billing/plans/${planId}/prices`,
+      `/billing/v1/plans/${planId}/prices`,
       params
     );
   }
   async listPrices(planId) {
-    return this.req("GET", `/billing/plans/${planId}/prices`);
+    return this.req("GET", `/billing/v1/plans/${planId}/prices`);
   }
   async archivePrice(planId, priceId) {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/prices/${priceId}`
+      `/billing/v1/plans/${planId}/prices/${priceId}`
     );
   }
   // ============================================================
@@ -276,27 +276,27 @@ var BillingService = class {
   async createEntitlement(planId, params) {
     return this.req(
       "POST",
-      `/billing/plans/${planId}/entitlements`,
+      `/billing/v1/plans/${planId}/entitlements`,
       params
     );
   }
   async listEntitlements(planId) {
-    return this.req("GET", `/billing/plans/${planId}/entitlements`);
+    return this.req("GET", `/billing/v1/plans/${planId}/entitlements`);
   }
   async archiveEntitlement(planId, entitlementId) {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/entitlements/${entitlementId}`
+      `/billing/v1/plans/${planId}/entitlements/${entitlementId}`
     );
   }
   // ============================================================
   // CUSTOMERS
   // ============================================================
   async createCustomer(params) {
-    return this.req("POST", "/billing/customers", params);
+    return this.req("POST", "/billing/v1/customers", params);
   }
   async getCustomer(id) {
-    return this.req("GET", `/billing/customers/${id}`);
+    return this.req("GET", `/billing/v1/customers/${id}`);
   }
   async listCustomers(params) {
     const query = {};
@@ -304,7 +304,7 @@ var BillingService = class {
     if (params?.cursor) query.cursor = params.cursor;
     const baseReq = {
       method: "GET",
-      path: "/billing/customers",
+      path: "/billing/v1/customers",
       query
     };
     const resp = await this.transport.request(baseReq);
@@ -327,12 +327,12 @@ var BillingService = class {
   async updateCustomer(id, params) {
     return this.req(
       "PATCH",
-      `/billing/customers/${id}`,
+      `/billing/v1/customers/${id}`,
       params
     );
   }
   async deleteCustomer(id) {
-    return this.reqVoid("DELETE", `/billing/customers/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/customers/${id}`);
   }
   // ============================================================
   // SUBSCRIPTIONS
@@ -340,20 +340,20 @@ var BillingService = class {
   async createSubscription(params) {
     return this.req(
       "POST",
-      "/billing/subscriptions",
+      "/billing/v1/subscriptions",
       params
     );
   }
   async getSubscription(id) {
     return this.req(
       "GET",
-      `/billing/subscriptions/${id}`
+      `/billing/v1/subscriptions/${id}`
     );
   }
   async cancelSubscription(id) {
     return this.req(
       "DELETE",
-      `/billing/subscriptions/${id}`
+      `/billing/v1/subscriptions/${id}`
     );
   }
   // ============================================================
@@ -362,7 +362,7 @@ var BillingService = class {
   async checkEntitlement(params) {
     return this.req(
       "POST",
-      "/billing/entitlements/check",
+      "/billing/v1/entitlements/check",
       params
     );
   }
@@ -370,10 +370,10 @@ var BillingService = class {
   // USAGE
   // ============================================================
   async recordUsage(params) {
-    return this.req("POST", "/billing/usage", params);
+    return this.req("POST", "/billing/v1/usage", params);
   }
   async getUsageSummary(params) {
-    return this.req("GET", "/billing/usage", void 0, {
+    return this.req("GET", "/billing/v1/usage", void 0, {
       subscription_id: params.subscription_id
     });
   }
@@ -383,8 +383,71 @@ var BillingService = class {
   async createPortalLink(customerId, params) {
     return this.req(
       "POST",
-      `/billing/customers/${customerId}/portal-link`,
+      `/billing/v1/customers/${customerId}/portal-link`,
       params ?? {}
+    );
+  }
+  // ============================================================
+  // CHARGES
+  // ============================================================
+  async listCharges(params) {
+    const query = {
+      customer_id: params.customer_id
+    };
+    if (params.limit) query.limit = String(params.limit);
+    if (params.offset) query.offset = String(params.offset);
+    return this.req("GET", "/billing/v1/charges", void 0, query);
+  }
+  async createCharge(params) {
+    return this.req("POST", "/billing/v1/charges", params);
+  }
+  async getCharge(id) {
+    return this.req("GET", `/billing/v1/charges/${id}`);
+  }
+  async createChargeCheckout(chargeId, params) {
+    return this.req(
+      "POST",
+      `/billing/v1/charges/${chargeId}/checkout`,
+      params ?? {}
+    );
+  }
+  // ============================================================
+  // INVOICE ALIASES
+  // ============================================================
+  /** @deprecated Billing public API calls these charges. Use listCharges. */
+  async listInvoices(params) {
+    const list = await this.listCharges(params);
+    return { invoices: list.charges, total: list.total };
+  }
+  /** @deprecated Billing public API calls these charges. Use createCharge. */
+  async createInvoice(params) {
+    return this.createCharge(params);
+  }
+  /** @deprecated Billing public API calls these charges. Use getCharge. */
+  async getInvoice(id) {
+    return this.getCharge(id);
+  }
+  /** @deprecated Billing public API calls these charges. Use createChargeCheckout. */
+  async createInvoiceCheckout(invoiceId, params) {
+    return this.createChargeCheckout(invoiceId, params);
+  }
+  // ============================================================
+  // CHECKOUT
+  // ============================================================
+  async createCheckoutLink(subscriptionId, params) {
+    return this.req(
+      "POST",
+      `/billing/v1/subscriptions/${subscriptionId}/checkout-link`,
+      params ?? {}
+    );
+  }
+  // ============================================================
+  // PAYMENTS
+  // ============================================================
+  async getPaymentStatus(paymentId) {
+    return this.req(
+      "GET",
+      `/billing/v1/payments/${paymentId}/status`
     );
   }
   // ============================================================
@@ -393,28 +456,28 @@ var BillingService = class {
   async createPaymentConfig(params) {
     return this.req(
       "POST",
-      "/billing/payment-configs",
+      "/billing/v1/payment-configs",
       params
     );
   }
   async listPaymentConfigs() {
-    return this.req("GET", "/billing/payment-configs");
+    return this.req("GET", "/billing/v1/payment-configs");
   }
   async getPaymentConfig(id) {
     return this.req(
       "GET",
-      `/billing/payment-configs/${id}`
+      `/billing/v1/payment-configs/${id}`
     );
   }
   async updatePaymentConfig(id, params) {
     return this.req(
       "PATCH",
-      `/billing/payment-configs/${id}`,
+      `/billing/v1/payment-configs/${id}`,
       params
     );
   }
   async deletePaymentConfig(id) {
-    return this.reqVoid("DELETE", `/billing/payment-configs/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/payment-configs/${id}`);
   }
 };
 
@@ -645,6 +708,10 @@ var SalesService = class {
   // ============================================================
   // CONTACT BASES
   // ============================================================
+  /** Create a new contact base. */
+  async createContactBase(params) {
+    return this.req("POST", "/sales/v1/contact-bases", params);
+  }
   /** List all contact bases. */
   async listContactBases() {
     return this.req("GET", "/sales/v1/contact-bases");
@@ -720,7 +787,7 @@ var SalesService = class {
 };
 
 // src/client.ts
-var DEFAULT_BASE_URL = "https://api.tedo.ai/v1";
+var DEFAULT_BASE_URL = "https://api.tedo.ai";
 var Tedo = class {
   billing;
   sales;

@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"

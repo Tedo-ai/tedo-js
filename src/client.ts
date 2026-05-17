@@ -4,7 +4,7 @@ import { parseError } from "./errors.js";
 import { BillingService } from "./billing/index.js";
 import { SalesService } from "./sales/index.js";
 
-const DEFAULT_BASE_URL = "https://api.tedo.ai/v1";
+const DEFAULT_BASE_URL = "https://api.tedo.ai";
 
 export interface TedoOptions {
   apiKey: string;

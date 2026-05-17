@@ -32,7 +32,7 @@ describe("Tedo client", () => {
 
     expect(plan.id).toBe("plan_1");
     expect(transport.lastRequest.method).toBe("GET");
-    expect(transport.lastRequest.path).toBe("/billing/plans/plan_1");
+    expect(transport.lastRequest.path).toBe("/billing/v1/plans/plan_1");
   });
 
   it("throws on error responses", async () => {

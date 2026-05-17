@@ -23,6 +23,11 @@ import type {
   GetUsageSummaryParams,
   PortalLink,
   CreatePortalLinkParams,
+  Charge,
+  CreateChargeParams,
+  ListChargesParams,
+  ChargeCheckoutResult,
+  CreateChargeCheckoutParams,
   Invoice,
   CreateInvoiceParams,
   ListInvoicesParams,
@@ -57,7 +62,7 @@ interface ClientInternals {
 }
 
 /** Billing service covering plans, prices, entitlements, customers,
- *  subscriptions, invoices, checkout, payments, usage, and portal links. */
+ *  subscriptions, charges, checkout, payments, usage, and portal links. */
 export class BillingService {
   private req: RequestFn;
   private reqVoid: RequestVoidFn;
@@ -75,23 +80,23 @@ export class BillingService {
   // ============================================================
 
   async createPlan(params: CreatePlanParams): Promise<Plan> {
-    return this.req<Plan>("POST", "/billing/plans", params);
+    return this.req<Plan>("POST", "/billing/v1/plans", params);
   }
 
   async listPlans(): Promise<{ plans: Plan[]; total: number }> {
-    return this.req("GET", "/billing/plans");
+    return this.req("GET", "/billing/v1/plans");
   }
 
   async getPlan(id: string): Promise<Plan> {
-    return this.req<Plan>("GET", `/billing/plans/${id}`);
+    return this.req<Plan>("GET", `/billing/v1/plans/${id}`);
   }
 
   async updatePlan(id: string, params: UpdatePlanParams): Promise<Plan> {
-    return this.req<Plan>("PATCH", `/billing/plans/${id}`, params);
+    return this.req<Plan>("PATCH", `/billing/v1/plans/${id}`, params);
   }
 
   async deletePlan(id: string): Promise<void> {
-    return this.reqVoid("DELETE", `/billing/plans/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/plans/${id}`);
   }
 
   // ============================================================
@@ -101,7 +106,7 @@ export class BillingService {
   async createPrice(planId: string, params: CreatePriceParams): Promise<Price> {
     return this.req<Price>(
       "POST",
-      `/billing/plans/${planId}/prices`,
+      `/billing/v1/plans/${planId}/prices`,
       params,
     );
   }
@@ -109,13 +114,13 @@ export class BillingService {
   async listPrices(
     planId: string,
   ): Promise<{ prices: Price[]; total: number }> {
-    return this.req("GET", `/billing/plans/${planId}/prices`);
+    return this.req("GET", `/billing/v1/plans/${planId}/prices`);
   }
 
   async archivePrice(planId: string, priceId: string): Promise<void> {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/prices/${priceId}`,
+      `/billing/v1/plans/${planId}/prices/${priceId}`,
     );
   }
 
@@ -129,7 +134,7 @@ export class BillingService {
   ): Promise<Entitlement> {
     return this.req<Entitlement>(
       "POST",
-      `/billing/plans/${planId}/entitlements`,
+      `/billing/v1/plans/${planId}/entitlements`,
       params,
     );
   }
@@ -137,7 +142,7 @@ export class BillingService {
   async listEntitlements(
     planId: string,
   ): Promise<{ entitlements: Entitlement[]; total: number }> {
-    return this.req("GET", `/billing/plans/${planId}/entitlements`);
+    return this.req("GET", `/billing/v1/plans/${planId}/entitlements`);
   }
 
   async archiveEntitlement(
@@ -146,7 +151,7 @@ export class BillingService {
   ): Promise<void> {
     return this.reqVoid(
       "DELETE",
-      `/billing/plans/${planId}/entitlements/${entitlementId}`,
+      `/billing/v1/plans/${planId}/entitlements/${entitlementId}`,
     );
   }
 
@@ -155,11 +160,11 @@ export class BillingService {
   // ============================================================
 
   async createCustomer(params: CreateCustomerParams): Promise<Customer> {
-    return this.req<Customer>("POST", "/billing/customers", params);
+    return this.req<Customer>("POST", "/billing/v1/customers", params);
   }
 
   async getCustomer(id: string): Promise<Customer> {
-    return this.req<Customer>("GET", `/billing/customers/${id}`);
+    return this.req<Customer>("GET", `/billing/v1/customers/${id}`);
   }
 
   async listCustomers(params?: ListCustomersParams): Promise<Page<Customer>> {
@@ -169,7 +174,7 @@ export class BillingService {
 
     const baseReq: TransportRequest = {
       method: "GET",
-      path: "/billing/customers",
+      path: "/billing/v1/customers",
       query,
     };
 
@@ -200,13 +205,13 @@ export class BillingService {
   ): Promise<Customer> {
     return this.req<Customer>(
       "PATCH",
-      `/billing/customers/${id}`,
+      `/billing/v1/customers/${id}`,
       params,
     );
   }
 
   async deleteCustomer(id: string): Promise<void> {
-    return this.reqVoid("DELETE", `/billing/customers/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/customers/${id}`);
   }
 
   // ============================================================
@@ -218,7 +223,7 @@ export class BillingService {
   ): Promise<Subscription> {
     return this.req<Subscription>(
       "POST",
-      "/billing/subscriptions",
+      "/billing/v1/subscriptions",
       params,
     );
   }
@@ -226,14 +231,14 @@ export class BillingService {
   async getSubscription(id: string): Promise<Subscription> {
     return this.req<Subscription>(
       "GET",
-      `/billing/subscriptions/${id}`,
+      `/billing/v1/subscriptions/${id}`,
     );
   }
 
   async cancelSubscription(id: string): Promise<Subscription> {
     return this.req<Subscription>(
       "DELETE",
-      `/billing/subscriptions/${id}`,
+      `/billing/v1/subscriptions/${id}`,
     );
   }
 
@@ -246,7 +251,7 @@ export class BillingService {
   ): Promise<EntitlementCheck> {
     return this.req<EntitlementCheck>(
       "POST",
-      "/billing/entitlements/check",
+      "/billing/v1/entitlements/check",
       params,
     );
   }
@@ -256,13 +261,13 @@ export class BillingService {
   // ============================================================
 
   async recordUsage(params: RecordUsageParams): Promise<UsageRecord> {
-    return this.req<UsageRecord>("POST", "/billing/usage", params);
+    return this.req<UsageRecord>("POST", "/billing/v1/usage", params);
   }
 
   async getUsageSummary(
     params: GetUsageSummaryParams,
   ): Promise<UsageSummary> {
-    return this.req<UsageSummary>("GET", "/billing/usage", undefined, {
+    return this.req<UsageSummary>("GET", "/billing/v1/usage", undefined, {
       subscription_id: params.subscription_id,
     });
   }
@@ -277,44 +282,74 @@ export class BillingService {
   ): Promise<PortalLink> {
     return this.req<PortalLink>(
       "POST",
-      `/billing/customers/${customerId}/portal-link`,
+      `/billing/v1/customers/${customerId}/portal-link`,
       params ?? {},
     );
   }
 
   // ============================================================
-  // INVOICES
+  // CHARGES
   // ============================================================
 
-  async listInvoices(
-    params: ListInvoicesParams,
-  ): Promise<{ invoices: Invoice[]; total: number }> {
+  async listCharges(
+    params: ListChargesParams,
+  ): Promise<{ charges: Charge[]; total: number }> {
     const query: Record<string, string> = {
       customer_id: params.customer_id,
     };
     if (params.limit) query.limit = String(params.limit);
     if (params.offset) query.offset = String(params.offset);
 
-    return this.req("GET", "/billing/invoices", undefined, query);
+    return this.req("GET", "/billing/v1/charges", undefined, query);
   }
 
+  async createCharge(params: CreateChargeParams): Promise<Charge> {
+    return this.req<Charge>("POST", "/billing/v1/charges", params);
+  }
+
+  async getCharge(id: string): Promise<Charge> {
+    return this.req<Charge>("GET", `/billing/v1/charges/${id}`);
+  }
+
+  async createChargeCheckout(
+    chargeId: string,
+    params?: CreateChargeCheckoutParams,
+  ): Promise<ChargeCheckoutResult> {
+    return this.req<ChargeCheckoutResult>(
+      "POST",
+      `/billing/v1/charges/${chargeId}/checkout`,
+      params ?? {},
+    );
+  }
+
+  // ============================================================
+  // INVOICE ALIASES
+  // ============================================================
+
+  /** @deprecated Billing public API calls these charges. Use listCharges. */
+  async listInvoices(
+    params: ListInvoicesParams,
+  ): Promise<{ invoices: Invoice[]; total: number }> {
+    const list = await this.listCharges(params);
+    return { invoices: list.charges, total: list.total };
+  }
+
+  /** @deprecated Billing public API calls these charges. Use createCharge. */
   async createInvoice(params: CreateInvoiceParams): Promise<Invoice> {
-    return this.req<Invoice>("POST", "/billing/invoices", params);
+    return this.createCharge(params);
   }
 
+  /** @deprecated Billing public API calls these charges. Use getCharge. */
   async getInvoice(id: string): Promise<Invoice> {
-    return this.req<Invoice>("GET", `/billing/invoices/${id}`);
+    return this.getCharge(id);
   }
 
+  /** @deprecated Billing public API calls these charges. Use createChargeCheckout. */
   async createInvoiceCheckout(
     invoiceId: string,
     params?: CreateInvoiceCheckoutParams,
   ): Promise<InvoiceCheckoutResult> {
-    return this.req<InvoiceCheckoutResult>(
-      "POST",
-      `/billing/invoices/${invoiceId}/checkout`,
-      params ?? {},
-    );
+    return this.createChargeCheckout(invoiceId, params);
   }
 
   // ============================================================
@@ -327,7 +362,7 @@ export class BillingService {
   ): Promise<CheckoutLink> {
     return this.req<CheckoutLink>(
       "POST",
-      `/billing/subscriptions/${subscriptionId}/checkout-link`,
+      `/billing/v1/subscriptions/${subscriptionId}/checkout-link`,
       params ?? {},
     );
   }
@@ -339,7 +374,7 @@ export class BillingService {
   async getPaymentStatus(paymentId: string): Promise<PaymentStatus> {
     return this.req<PaymentStatus>(
       "GET",
-      `/billing/payments/${paymentId}/status`,
+      `/billing/v1/payments/${paymentId}/status`,
     );
   }
 
@@ -352,7 +387,7 @@ export class BillingService {
   ): Promise<PaymentConfig> {
     return this.req<PaymentConfig>(
       "POST",
-      "/billing/payment-configs",
+      "/billing/v1/payment-configs",
       params,
     );
   }
@@ -361,13 +396,13 @@ export class BillingService {
     payment_configs: PaymentConfig[];
     total: number;
   }> {
-    return this.req("GET", "/billing/payment-configs");
+    return this.req("GET", "/billing/v1/payment-configs");
   }
 
   async getPaymentConfig(id: string): Promise<PaymentConfig> {
     return this.req<PaymentConfig>(
       "GET",
-      `/billing/payment-configs/${id}`,
+      `/billing/v1/payment-configs/${id}`,
     );
   }
 
@@ -377,12 +412,12 @@ export class BillingService {
   ): Promise<PaymentConfig> {
     return this.req<PaymentConfig>(
       "PATCH",
-      `/billing/payment-configs/${id}`,
+      `/billing/v1/payment-configs/${id}`,
       params,
     );
   }
 
   async deletePaymentConfig(id: string): Promise<void> {
-    return this.reqVoid("DELETE", `/billing/payment-configs/${id}`);
+    return this.reqVoid("DELETE", `/billing/v1/payment-configs/${id}`);
   }
 }

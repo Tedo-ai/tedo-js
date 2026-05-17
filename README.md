@@ -117,6 +117,7 @@ const client = new Tedo({
 | Entitlement Check | `checkEntitlement` |
 | Usage | `recordUsage`, `getUsageSummary` |
 | Portal | `createPortalLink` |
+| Charges | `listCharges`, `createCharge`, `getCharge`, `createChargeCheckout` |
 
 ### Sales (44 methods)
 

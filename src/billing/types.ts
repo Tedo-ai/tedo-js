@@ -192,10 +192,10 @@ export interface CreatePortalLinkParams {
 }
 
 // ============================================================
-// INVOICES
+// CHARGES
 // ============================================================
 
-export interface InvoiceLineItem {
+export interface ChargeLineItem {
   description: string;
   quantity: number;
   unit_amount: number;
@@ -204,7 +204,7 @@ export interface InvoiceLineItem {
   plan_name?: string;
 }
 
-export interface Invoice {
+export interface Charge {
   id: string;
   customer_id: string;
   subscription_id?: string;
@@ -219,36 +219,56 @@ export interface Invoice {
   period_start?: string;
   period_end?: string;
   due_date?: string;
-  lines?: InvoiceLineItem[];
+  lines?: ChargeLineItem[];
   notes?: string;
   metadata?: Record<string, unknown>;
   created_at: string;
   updated_at?: string;
 }
 
-export interface CreateInvoiceParams {
+export interface CreateChargeParams {
   customer_id: string;
   currency?: string;
-  lines: Omit<InvoiceLineItem, "amount">[];
+  lines: Omit<ChargeLineItem, "amount">[];
   notes?: string;
   metadata?: Record<string, unknown>;
 }
 
-export interface ListInvoicesParams {
+export interface ListChargesParams {
   customer_id: string;
   limit?: number;
   offset?: number;
 }
 
-export interface InvoiceCheckoutResult {
+export interface ChargeCheckoutResult {
   payment_id: string;
-  invoice_id: string;
+  charge_id: string;
   checkout_url: string;
 }
 
-export interface CreateInvoiceCheckoutParams {
+export interface CreateChargeCheckoutParams {
   redirect_url?: string;
 }
+
+/** @deprecated Use ChargeLineItem. */
+export type InvoiceLineItem = ChargeLineItem;
+
+/** @deprecated Use Charge. */
+export type Invoice = Charge;
+
+/** @deprecated Use CreateChargeParams. */
+export type CreateInvoiceParams = CreateChargeParams;
+
+/** @deprecated Use ListChargesParams. */
+export type ListInvoicesParams = ListChargesParams;
+
+/** @deprecated Use ChargeCheckoutResult. */
+export interface InvoiceCheckoutResult extends ChargeCheckoutResult {
+  invoice_id?: string;
+}
+
+/** @deprecated Use CreateChargeCheckoutParams. */
+export type CreateInvoiceCheckoutParams = CreateChargeCheckoutParams;
 
 // ============================================================
 // CHECKOUT
@@ -272,6 +292,8 @@ export interface CreateCheckoutLinkParams {
 export interface PaymentStatus {
   id: string;
   status: string;
+  charge_id?: string;
+  /** @deprecated Billing public API returns charge_id. */
   invoice_id?: string;
 }
 

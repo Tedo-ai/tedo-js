@@ -186,6 +186,85 @@ interface PortalLink {
 interface CreatePortalLinkParams {
     expires_in_hours?: number;
 }
+interface ChargeLineItem {
+    description: string;
+    quantity: number;
+    unit_amount: number;
+    amount: number;
+    price_id?: string;
+    plan_name?: string;
+}
+interface Charge {
+    id: string;
+    customer_id: string;
+    subscription_id?: string;
+    number?: string;
+    status: string;
+    currency: string;
+    subtotal: number;
+    tax: number;
+    total: number;
+    amount_paid: number;
+    amount_due: number;
+    period_start?: string;
+    period_end?: string;
+    due_date?: string;
+    lines?: ChargeLineItem[];
+    notes?: string;
+    metadata?: Record<string, unknown>;
+    created_at: string;
+    updated_at?: string;
+}
+interface CreateChargeParams {
+    customer_id: string;
+    currency?: string;
+    lines: Omit<ChargeLineItem, "amount">[];
+    notes?: string;
+    metadata?: Record<string, unknown>;
+}
+interface ListChargesParams {
+    customer_id: string;
+    limit?: number;
+    offset?: number;
+}
+interface ChargeCheckoutResult {
+    payment_id: string;
+    charge_id: string;
+    checkout_url: string;
+}
+interface CreateChargeCheckoutParams {
+    redirect_url?: string;
+}
+/** @deprecated Use ChargeLineItem. */
+type InvoiceLineItem = ChargeLineItem;
+/** @deprecated Use Charge. */
+type Invoice = Charge;
+/** @deprecated Use CreateChargeParams. */
+type CreateInvoiceParams = CreateChargeParams;
+/** @deprecated Use ListChargesParams. */
+type ListInvoicesParams = ListChargesParams;
+/** @deprecated Use ChargeCheckoutResult. */
+interface InvoiceCheckoutResult extends ChargeCheckoutResult {
+    invoice_id?: string;
+}
+/** @deprecated Use CreateChargeCheckoutParams. */
+type CreateInvoiceCheckoutParams = CreateChargeCheckoutParams;
+interface CheckoutLink {
+    checkout_url: string;
+    token: string;
+    expires_at: string;
+}
+interface CreateCheckoutLinkParams {
+    expires_in_hours?: number;
+    expires_in_minutes?: number;
+}
+interface PaymentStatus {
+    id: string;
+    status: string;
+    charge_id?: string;
+    /** @deprecated Billing public API returns charge_id. */
+    invoice_id?: string;
+}
 interface PaymentConfig {
     id: string;
     provider: string;
@@ -217,8 +296,8 @@ interface ClientInternals$1 {
     _requestVoid: RequestVoidFn$1;
     _transport: Transport;
 }
-/** Billing service — 23 methods covering plans, prices, entitlements,
- *  customers, subscriptions, usage, and portal links. */
+/** Billing service covering plans, prices, entitlements, customers,
+ *  subscriptions, charges, checkout, payments, usage, and portal links. */
 declare class BillingService {
     private req;
     private reqVoid;
@@ -257,6 +336,26 @@ declare class BillingService {
     recordUsage(params: RecordUsageParams): Promise<UsageRecord>;
     getUsageSummary(params: GetUsageSummaryParams): Promise<UsageSummary>;
     createPortalLink(customerId: string, params?: CreatePortalLinkParams): Promise<PortalLink>;
+    listCharges(params: ListChargesParams): Promise<{
+        charges: Charge[];
+        total: number;
+    }>;
+    createCharge(params: CreateChargeParams): Promise<Charge>;
+    getCharge(id: string): Promise<Charge>;
+    createChargeCheckout(chargeId: string, params?: CreateChargeCheckoutParams): Promise<ChargeCheckoutResult>;
+    /** @deprecated Billing public API calls these charges. Use listCharges. */
+    listInvoices(params: ListInvoicesParams): Promise<{
+        invoices: Invoice[];
+        total: number;
+    }>;
+    /** @deprecated Billing public API calls these charges. Use createCharge. */
+    createInvoice(params: CreateInvoiceParams): Promise<Invoice>;
+    /** @deprecated Billing public API calls these charges. Use getCharge. */
+    getInvoice(id: string): Promise<Invoice>;
+    /** @deprecated Billing public API calls these charges. Use createChargeCheckout. */
+    createInvoiceCheckout(invoiceId: string, params?: CreateInvoiceCheckoutParams): Promise<InvoiceCheckoutResult>;
+    createCheckoutLink(subscriptionId: string, params?: CreateCheckoutLinkParams): Promise<CheckoutLink>;
+    getPaymentStatus(paymentId: string): Promise<PaymentStatus>;
     createPaymentConfig(params: CreatePaymentConfigParams): Promise<PaymentConfig>;
     listPaymentConfigs(): Promise<{
         payment_configs: PaymentConfig[];
@@ -471,6 +570,9 @@ interface ContactBase {
     created_at: string;
     updated_at: string;
 }
+interface CreateContactBaseParams {
+    name: string;
+}
 interface Person {
     id: string;
     full_name: string;
@@ -621,6 +723,8 @@ declare class SalesService {
     updateNote(id: string, params: UpdateNoteParams): Promise<Note>;
     /** Delete a note. */
     deleteNote(id: string): Promise<void>;
+    /** Create a new contact base. */
+    createContactBase(params: CreateContactBaseParams): Promise<ContactBase>;
     /** List all contact bases. */
     listContactBases(): Promise<{
         contact_bases: ContactBase[];
@@ -708,4 +812,4 @@ declare class RateLimitError extends TedoError {
 /** Parse an API error response into the appropriate error subclass. */
 declare function parseError(status: number, body: unknown): TedoError;
 
-export { type Activity, ActivityType, AuthenticationError, BillingService, type CheckEntitlementParams, type ContactBase, type ConvertLeadParams, type CreateActivityParams, type CreateCustomerParams, type CreateDealParams, type CreateEntitlementParams, type CreateLeadParams, type CreateNoteParams, type CreateOrganizationParams, type CreatePersonParams, type CreatePipelineParams, type CreatePlanParams, type CreatePortalLinkParams, type CreatePriceParams, type CreateStageParams, type CreateSubscriptionParams, type Customer, type Deal, type Entitlement, type EntitlementCheck, type EntityLink, type GetUsageSummaryParams, HttpTransport, type Lead, Link, type ListActivitiesParams, type ListCustomersParams, type ListDealsParams, type ListLeadsParams, type ListNotesParams, NotFoundError, type Note, type Organization, Page, PermissionError, type Person, type Pipeline, type PipelineStage, type Plan, type PortalLink, type Price, RateLimitError, type RecordUsageParams, ResourceType, SalesService, StageOutcome, type Subscription, Tedo, TedoError, type TedoOptions, type Transport, type TransportRequest, type TransportResponse, type UpdateActivityParams, type UpdateCustomerParams, type UpdateDealParams, type UpdateLeadParams, type UpdateNoteParams, type UpdateOrganizationParams, type UpdatePersonParams, type UpdatePipelineParams, type UpdatePlanParams, type UpdateStageParams, type UsageRecord, type UsageSummary, ValidationError, parseError };
+export { type Activity, ActivityType, AuthenticationError, BillingService, type Charge, type ChargeCheckoutResult, type ChargeLineItem, type CheckEntitlementParams, type CheckoutLink, type ContactBase, type ConvertLeadParams, type CreateActivityParams, type CreateChargeCheckoutParams, type CreateChargeParams, type CreateCheckoutLinkParams, type CreateContactBaseParams, type CreateCustomerParams, type CreateDealParams, type CreateEntitlementParams, type CreateInvoiceCheckoutParams, type CreateInvoiceParams, type CreateLeadParams, type CreateNoteParams, type CreateOrganizationParams, type CreatePersonParams, type CreatePipelineParams, type CreatePlanParams, type CreatePortalLinkParams, type CreatePriceParams, type CreateStageParams, type CreateSubscriptionParams, type Customer, type Deal, type Entitlement, type EntitlementCheck, type EntityLink, type GetUsageSummaryParams, HttpTransport, type Invoice, type InvoiceCheckoutResult, type InvoiceLineItem, type Lead, Link, type ListActivitiesParams, type ListChargesParams, type ListCustomersParams, type ListDealsParams, type ListInvoicesParams, type ListLeadsParams, type ListNotesParams, NotFoundError, type Note, type Organization, Page, type PaymentStatus, PermissionError, type Person, type Pipeline, type PipelineStage, type Plan, type PortalLink, type Price, RateLimitError, type RecordUsageParams, ResourceType, SalesService, StageOutcome, type Subscription, Tedo, TedoError, type TedoOptions, type Transport, type TransportRequest, type TransportResponse, type UpdateActivityParams, type UpdateCustomerParams, type UpdateDealParams, type UpdateLeadParams, type UpdateNoteParams, type UpdateOrganizationParams, type UpdatePersonParams, type UpdatePipelineParams, type UpdatePlanParams, type UpdateStageParams, type UsageRecord, type UsageSummary, ValidationError, parseError };
