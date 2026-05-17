@@ -18,7 +18,7 @@ describe("BillingService", () => {
 
       expect(plan.id).toBe("plan_1");
       expect(transport.lastRequest.method).toBe("POST");
-      expect(transport.lastRequest.path).toBe("/billing/plans");
+      expect(transport.lastRequest.path).toBe("/billing/v1/plans");
       expect(transport.lastRequest.body).toEqual({
         key: "pro",
         name: "Pro",
@@ -36,7 +36,7 @@ describe("BillingService", () => {
 
       expect(list.plans).toHaveLength(1);
       expect(transport.lastRequest.method).toBe("GET");
-      expect(transport.lastRequest.path).toBe("/billing/plans");
+      expect(transport.lastRequest.path).toBe("/billing/v1/plans");
     });
 
     it("getPlan sends GET /billing/plans/:id", async () => {
@@ -46,7 +46,7 @@ describe("BillingService", () => {
       await client.billing.getPlan("plan_1");
 
       expect(transport.lastRequest.method).toBe("GET");
-      expect(transport.lastRequest.path).toBe("/billing/plans/plan_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/plans/plan_1");
     });
 
     it("updatePlan sends PATCH /billing/plans/:id", async () => {
@@ -56,7 +56,7 @@ describe("BillingService", () => {
       await client.billing.updatePlan("plan_1", { name: "Pro Plus" });
 
       expect(transport.lastRequest.method).toBe("PATCH");
-      expect(transport.lastRequest.path).toBe("/billing/plans/plan_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/plans/plan_1");
       expect(transport.lastRequest.body).toEqual({ name: "Pro Plus" });
     });
 
@@ -67,7 +67,7 @@ describe("BillingService", () => {
       await client.billing.deletePlan("plan_1");
 
       expect(transport.lastRequest.method).toBe("DELETE");
-      expect(transport.lastRequest.path).toBe("/billing/plans/plan_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/plans/plan_1");
     });
   });
 
@@ -87,7 +87,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("POST");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/prices",
+        "/billing/v1/plans/plan_1/prices",
       );
       expect(transport.lastRequest.body).toEqual({
         key: "monthly",
@@ -106,7 +106,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("GET");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/prices",
+        "/billing/v1/plans/plan_1/prices",
       );
     });
 
@@ -118,7 +118,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("DELETE");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/prices/price_1",
+        "/billing/v1/plans/plan_1/prices/price_1",
       );
     });
   });
@@ -139,7 +139,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("POST");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/entitlements",
+        "/billing/v1/plans/plan_1/entitlements",
       );
     });
 
@@ -154,7 +154,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("GET");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/entitlements",
+        "/billing/v1/plans/plan_1/entitlements",
       );
     });
 
@@ -166,7 +166,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("DELETE");
       expect(transport.lastRequest.path).toBe(
-        "/billing/plans/plan_1/entitlements/ent_1",
+        "/billing/v1/plans/plan_1/entitlements/ent_1",
       );
     });
   });
@@ -189,7 +189,7 @@ describe("BillingService", () => {
       });
 
       expect(transport.lastRequest.method).toBe("POST");
-      expect(transport.lastRequest.path).toBe("/billing/customers");
+      expect(transport.lastRequest.path).toBe("/billing/v1/customers");
       expect(transport.lastRequest.body).toEqual({
         email: "user@example.com",
         name: "Acme",
@@ -203,7 +203,7 @@ describe("BillingService", () => {
       await client.billing.getCustomer("cus_1");
 
       expect(transport.lastRequest.method).toBe("GET");
-      expect(transport.lastRequest.path).toBe("/billing/customers/cus_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/customers/cus_1");
     });
 
     it("listCustomers sends GET with query params", async () => {
@@ -216,7 +216,7 @@ describe("BillingService", () => {
       await client.billing.listCustomers({ limit: 10, cursor: "abc" });
 
       expect(transport.lastRequest.method).toBe("GET");
-      expect(transport.lastRequest.path).toBe("/billing/customers");
+      expect(transport.lastRequest.path).toBe("/billing/v1/customers");
       expect(transport.lastRequest.query).toEqual({
         limit: "10",
         cursor: "abc",
@@ -232,7 +232,7 @@ describe("BillingService", () => {
       });
 
       expect(transport.lastRequest.method).toBe("PATCH");
-      expect(transport.lastRequest.path).toBe("/billing/customers/cus_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/customers/cus_1");
     });
 
     it("deleteCustomer sends DELETE /billing/customers/:id", async () => {
@@ -242,7 +242,7 @@ describe("BillingService", () => {
       await client.billing.deleteCustomer("cus_1");
 
       expect(transport.lastRequest.method).toBe("DELETE");
-      expect(transport.lastRequest.path).toBe("/billing/customers/cus_1");
+      expect(transport.lastRequest.path).toBe("/billing/v1/customers/cus_1");
     });
   });
 
@@ -265,7 +265,7 @@ describe("BillingService", () => {
       });
 
       expect(transport.lastRequest.method).toBe("POST");
-      expect(transport.lastRequest.path).toBe("/billing/subscriptions");
+      expect(transport.lastRequest.path).toBe("/billing/v1/subscriptions");
     });
 
     it("getSubscription sends GET /billing/subscriptions/:id", async () => {
@@ -276,7 +276,7 @@ describe("BillingService", () => {
 
       expect(transport.lastRequest.method).toBe("GET");
       expect(transport.lastRequest.path).toBe(
-        "/billing/subscriptions/sub_1",
+        "/billing/v1/subscriptions/sub_1",
       );
     });
 
@@ -289,7 +289,7 @@ describe("BillingService", () => {
       expect(sub.status).toBe("canceled");
       expect(transport.lastRequest.method).toBe("DELETE");
       expect(transport.lastRequest.path).toBe(
-        "/billing/subscriptions/sub_1",
+        "/billing/v1/subscriptions/sub_1",
       );
     });
   });
@@ -311,7 +311,7 @@ describe("BillingService", () => {
       expect(result.has_access).toBe(true);
       expect(transport.lastRequest.method).toBe("POST");
       expect(transport.lastRequest.path).toBe(
-        "/billing/entitlements/check",
+        "/billing/v1/entitlements/check",
       );
     });
   });
@@ -331,7 +331,7 @@ describe("BillingService", () => {
       });
 
       expect(transport.lastRequest.method).toBe("POST");
-      expect(transport.lastRequest.path).toBe("/billing/usage");
+      expect(transport.lastRequest.path).toBe("/billing/v1/usage");
       expect(transport.lastRequest.body).toEqual({
         subscription_id: "sub_1",
         quantity: 100,
@@ -351,7 +351,7 @@ describe("BillingService", () => {
       });
 
       expect(transport.lastRequest.method).toBe("GET");
-      expect(transport.lastRequest.path).toBe("/billing/usage");
+      expect(transport.lastRequest.path).toBe("/billing/v1/usage");
       expect(transport.lastRequest.query).toEqual({
         subscription_id: "sub_1",
       });
@@ -377,7 +377,7 @@ describe("BillingService", () => {
       expect(link.portal_url).toBe("https://portal.tedo.ai/abc");
       expect(transport.lastRequest.method).toBe("POST");
       expect(transport.lastRequest.path).toBe(
-        "/billing/customers/cus_1/portal-link",
+        "/billing/v1/customers/cus_1/portal-link",
       );
     });
 
